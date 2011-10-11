@@ -1,0 +1,36 @@
+#!/usr/bin/env python
+
+'''scribe_tail: A simple script for sending logfiles to scribe.'''
+
+import fcntl
+import logging
+logger = logging.getLogger()
+import logging.handlers
+import optparse
+import os
+import platform
+import signal
+import subprocess
+import sys
+import time
+import traceback
+
+from datetime import datetime
+from datetime import timedelta
+from scribe import scribe
+from thrift.transport import TTransport, TSocket
+from thrift.protocol import TBinaryProtocol
+
+# connect to thrift
+success = 0
+socket = TSocket.TSocket(host='10.25.141.103', port=1463)
+transport = TTransport.TFramedTransport(socket)
+protocol = TBinaryProtocol.TBinaryProtocol(trans=transport, strictRead=False,strictWrite=False)
+client = scribe.Client(iprot=protocol, oprot=protocol)
+transport.open()
+for line in sys.stdin:
+	log_entry=scribe.LogEntry(category='wmtad', message=line)
+	result = client.Log([log_entry])
+	success += 1
+	if 0 == (success % 100000):
+		print datetime.now()
